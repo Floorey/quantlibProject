@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # 1. FastAPI Backend (Die Mathe-Engine)
+  # ==========================================
+  backend:
+    build: .
+    container_name: quant_backend
+    # Startet den FastAPI Server
+    command: uvicorn api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  # ==========================================
+  # 2. Streamlit Frontend (Das UI Dashboard)
+  # ==========================================
+  frontend:
+    build: .
+    container_name: quant_frontend
+    # Startet Streamlit
+    command: streamlit run Haupt_App.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    depends_on:
+      - backend
+    restart: unless-stopped
