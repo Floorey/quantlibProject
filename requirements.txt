@@ -16,3 +16,5 @@ statsmodels>=0.13.0
 # Financial Engineering & Market Data
 QuantLib>=1.29
 yfinance>=0.2.18
+
+transformers
