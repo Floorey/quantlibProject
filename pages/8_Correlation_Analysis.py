@@ -139,7 +139,7 @@ if st.button("Korrelation analysieren", type="primary"):
 			))
 
 			fig_ccf.update_layout(
-				xaxis_title="Zeitversatz in Tagen (Negative = B führt A | Positive = A führt B)",
+				xaxis_title="Zeitversatz in Tagen (Negativ e = B führt A | Positive = A führt B)",
 				yaxis_title="Korrelation",
 				template="plotly_dark",
 				height=400,

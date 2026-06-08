@@ -20,7 +20,6 @@ st.markdown(
 # ==========================================
 # 2. KI Modell laden (Cached)
 # ==========================================
-# @st.cache_resource sorgt dafür, dass das Modell nur beim ersten Start geladen wird
 @st.cache_resource
 def load_sentiment_model():
 	# Lädt das vortrainierte FinBERT Modell für Sentiment-Analyse
@@ -34,7 +33,6 @@ st.header("1. Asset auswählen")
 ticker_input = st.text_input("Ticker-Symbol (z.B. AAPL, TSLA, NVDA)", value="TSLA").upper()
 max_news = st.slider("Anzahl der zu analysierenden Nachrichten", min_value=5, max_value=20, value=10)
 
-# Hier darf es nur EINEN Button mit diesem Namen geben!
 if st.button("Live-Nachrichten mit KI analysieren", type="primary"):
 	with st.spinner("Lade FinBERT KI-Modell und ziehe Live-News..."):
 
@@ -49,28 +47,23 @@ if st.button("Live-Nachrichten mit KI analysieren", type="primary"):
 			if not news_data:
 				st.warning(f"Keine aktuellen Nachrichten für {ticker_input} gefunden.")
 			else:
-				# Wir begrenzen auf die ausgewählte Anzahl
 				news_subset = news_data[:max_news]
 
 				results = []
 				# ==========================================
-				# 4. NLP Pipeline ausführen (ROBUST)
+				# 4. NLP Pipeline ausführen
 				# ==========================================
 				for item in news_subset:
-					# Robustes Extrahieren: Prüft verschiedene Yahoo-Strukturen
 					headline = item.get('title') or item.get('content', {}).get('title')
 					link = item.get('link') or item.get('content', {}).get('clickThroughUrl') or ""
 
-					# Falls Yahoo einen komplett leeren Datensatz schickt, überspringen wir ihn
 					if not headline:
 						continue
 
-					# Die KI bewertet die Headline
 					ai_result = analyzer(headline)[0]
-					label = ai_result['label']  # 'positive', 'negative' oder 'neutral'
-					score = ai_result['score']  # Konfidenz der KI (0 bis 1)
+					label = ai_result['label']
+					score = ai_result['score']
 
-					# Sentiment-Score numerisch mappen (-1 bis +1)
 					if label == "positive":
 						numeric_score = score
 					elif label == "negative":
@@ -87,13 +80,9 @@ if st.button("Live-Nachrichten mit KI analysieren", type="primary"):
 					})
 
 				if not results:
-					st.error(
-						"Nachrichtenstruktur von Yahoo Finance konnte nicht verarbeitet werden. Bitte anderen Ticker probieren.")
+					st.error("Nachrichtenstruktur von Yahoo Finance konnte nicht verarbeitet werden.")
 				else:
 					df_results = pd.DataFrame(results)
-
-					# Wandelt alle Einträge in der Spalte 'Link' in Strings um
-					df_results['Link'] = df_results['Link'].astype(str)
 
 					# ==========================================
 					# 5. Sentiment Dashboard & KPIs
@@ -101,10 +90,19 @@ if st.button("Live-Nachrichten mit KI analysieren", type="primary"):
 					st.divider()
 					st.header(f"2. Sentiment-Dashboard für {ticker_input}")
 
-					# Gesamt-Score berechnen (Durchschnitt)
+					# Gesamt-Score berechnen
 					avg_sentiment = df_results['Numeric Score'].mean()
 
-					# Kategorisierung des Gesamt-Scores
+					# ==========================================
+					# 🚀 HIER IST DIE NEUE LOGIK FÜR DAS GEDÄCHTNIS
+					# ==========================================
+					st.session_state['ai_ticker'] = ticker_input
+					st.session_state['ai_sentiment_score'] = avg_sentiment
+					st.info(
+						f"💾 Der KI-Score (**{avg_sentiment:.2f}**) für {ticker_input} wurde im globalen System hinterlegt und kann nun von der Monte-Carlo-Engine genutzt werden.")
+					# ==========================================
+
+					# Kategorisierung
 					if avg_sentiment > 0.2:
 						mood = "🟢 Bullish (Gier)"
 						delta_color = "normal"
@@ -121,7 +119,7 @@ if st.button("Live-Nachrichten mit KI analysieren", type="primary"):
 					c3.metric("Negative Nachrichten", len(df_results[df_results['Sentiment'] == 'NEGATIVE']))
 
 					# ==========================================
-					# 6. Visualisierung: Verteilung
+					# 6. Visualisierung & Tabelle
 					# ==========================================
 					fig = px.pie(
 						df_results,
@@ -134,19 +132,14 @@ if st.button("Live-Nachrichten mit KI analysieren", type="primary"):
 					fig.update_layout(template="plotly_dark", height=400)
 					st.plotly_chart(fig, use_container_width=True)
 
-					# ==========================================
-					# 7. Detaillierte Nachrichten-Tabelle
-					# ==========================================
 					st.subheader("Rohdaten: KI-Analyse der Schlagzeilen")
 
 
-					# Einfaches Farbsystem für den DataFrame
 					def color_sentiment(val):
 						color = 'red' if val == 'NEGATIVE' else 'green' if val == 'POSITIVE' else 'gray'
 						return f'color: {color}'
 
 
-					# Zeigt den DataFrame an (und nutzt das neue Argument für die Breite)
 					st.dataframe(
 						df_results[['Headline', 'Sentiment', 'Confidence', 'Link']].style.map(color_sentiment,
 						                                                                      subset=['Sentiment']),
