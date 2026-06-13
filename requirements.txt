@@ -19,3 +19,5 @@ yfinance>=0.2.18
 
 transformers>=4.30.0
 torch>=2.0.0
+alpaca>=0.43.3
+dotenv
